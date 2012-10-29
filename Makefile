@@ -17,7 +17,7 @@ tarball: clean
 
 install: ${PROG} man
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@install -m755 ${PROG} ${DESTIR}${PREFIX}/bin/${PROG}
+	@install -m755 ${PROG} ${DESTDIR}${PREFIX}/bin/${PROG}
 	@install -Dm666 ${PROG}.1.gz ${DESTDIR}${PREFIX}/man1/${PROG}.1.gz
 	
 
