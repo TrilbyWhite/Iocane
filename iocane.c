@@ -72,10 +72,11 @@ static void usage() {
    your system's rodent infestation\"\n\n\
   Copyright 2012, Jesse McClure    License: GPLv3\n\n\
 \033[1mUSAGE\033[0m\n\
-iocane [ -h | powder | move (up|down|left|right) | button <button> | <x> <y> [<button>] ]\n\n\
+iocane [ -h | powder | move (up|down|left|right) | o[ffset] <x> <y> | button <button> | <x> <y> [<button>] ]\n\n\
     -h        Show this help menu\n\
     p[owder]  Move the mouse cursor off screen\n\
     m[ove]    Move the mouse cursor in the selected direction\n\
+    o[ffset]  Move the mouse cursor <x> and <y> pixels from the current location\n\
     b[utton]  Simulate a click of mouse button <button>\n\
                 button can be 1,2, or 3 for primary buttons, or\n\
                 up, down, left, or right for scroll buttons\n\
@@ -92,17 +93,22 @@ int main(int argc, const char **argv) {
 	root = RootWindow(dpy,scr);
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
+	int x,y;
+	Window w; int i; unsigned int ui; /* ignored return values */
+	XQueryPointer(dpy,root,&w,&w,&x,&y,&i,&i,&ui);
 	if (argc > 1) {
 		if (argv[1][0] == '-' || argv[1][0] == 'h') usage();
 		else if (argv[1][0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
 		else if (argv[1][0] == 'm' && argc == 3) move(argv[2]); 
 		else if (argv[1][0] == 'b' && argc == 3) press(argv[2]); 
-		else if (argc > 2) XWarpPointer(dpy,None,root,0,0,0,0,atoi(argv[1]),atoi(argv[2]));
-		if (argc == 4) press(argv[3]);
+		else if (argv[1][0] == 'o' && argc == 4) XWarpPointer(dpy,None,root,0,0,0,0,atoi(argv[2])+x,atoi(argv[3])+y);
+		else if (argc > 2) {
+			XWarpPointer(dpy,None,root,0,0,0,0,atoi(argv[1]),atoi(argv[2]));
+			if (argc == 4) press(argv[3]);
+		}
 		XFlush(dpy);
 		return 0;
 	}
-	int i;
 	KeyCode code;
 	for (i = 0; i < sizeof(keys)/sizeof(keys[0]); i++)
 		if ( (code=XKeysymToKeycode(dpy,keys[i].keysym)) ) {
