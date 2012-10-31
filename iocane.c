@@ -1,9 +1,12 @@
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 #include <X11/XKBlib.h>
 #include <string.h>
+
+#define MAXLINE		255
 
 static Display *dpy;
 static int scr, sw, sh;
@@ -87,28 +90,62 @@ iocane [ -h | powder | move (up|down|left|right) | o[ffset] <x> <y> | button <bu
 	printf("%s\n",use);
 }
 
+static void command(char *line) {
+	int x=0, y=0;
+	sscanf(line,"%*s %d %d",&x,&y);
+	char *arg1 = strchr(line,' ') + 1;
+	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
+	else if (line[0] == 'm' && arg1) move(arg1);
+	else if (line[0] == 'b' && arg1) press(arg1);
+	else if (line[0] == 'o') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
+	else if (line[0] == 's') sleep(x);
+	else XWarpPointer(dpy,None,root,0,0,0,0,x,y);
+	XFlush(dpy);
+}
+
+static void scriptmode(int argc, const char **argv) {
+	int i,len;
+	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
+	char *p = line;
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == ':') {
+			command(line);
+			p = line;
+		}
+		else {
+			if (p > line) {*p=' '; p++;}
+			len = strlen(argv[i]);
+			strncpy(p,argv[i],len);
+			*(p+=len) = '\0';
+		}
+	}
+	command(line);
+	free(line);
+	exit(0);
+}
+
+static void stdinmode() {
+	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
+	while ( (fgets(line,MAXLINE,stdin)) != NULL ) command(line);
+	free(line);
+	exit(0);
+}
+
 int main(int argc, const char **argv) {
 	if (!(dpy=XOpenDisplay(0x0))) return 1;
 	scr = DefaultScreen(dpy);
 	root = RootWindow(dpy,scr);
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
-	int x,y;
 	Window w; int i; unsigned int ui; /* ignored return values */
-	XQueryPointer(dpy,root,&w,&w,&x,&y,&i,&i,&ui);
+	int cx,cy;
+	XQueryPointer(dpy,root,&w,&w,&cx,&cy,&i,&i,&ui);
 	if (argc > 1) {
-		if (argv[1][0] == '-' || argv[1][0] == 'h') usage();
-		else if (argv[1][0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
-		else if (argv[1][0] == 'm' && argc == 3) move(argv[2]); 
-		else if (argv[1][0] == 'b' && argc == 3) press(argv[2]); 
-		else if (argv[1][0] == 'o' && argc == 4) XWarpPointer(dpy,None,root,0,0,0,0,atoi(argv[2])+x,atoi(argv[3])+y);
-		else if (argc > 2) {
-			XWarpPointer(dpy,None,root,0,0,0,0,atoi(argv[1]),atoi(argv[2]));
-			if (argc == 4) press(argv[3]);
-		}
-		XFlush(dpy);
-		return 0;
+		if (argv[1][0] == '-' && argv[1][1] == 'h') usage();
+		if (argv[1][0] == '-' && argv[1][1] == '\0') stdinmode();
+		else scriptmode(argc,argv);
 	}
+	/* interactive mode: */
 	KeyCode code;
 	for (i = 0; i < sizeof(keys)/sizeof(keys[0]); i++)
 		if ( (code=XKeysymToKeycode(dpy,keys[i].keysym)) ) {
