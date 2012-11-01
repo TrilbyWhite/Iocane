@@ -30,9 +30,6 @@ Right move 10 0
 7 button 7
 Prior button 4
 Next button 5
-# Button numbers 10-35 can be simulated as follows:
-#a button A
-#b button B
 
 # misc
 o 0 0

@@ -16,12 +16,12 @@ static Bool running = True;
 
 typedef struct { KeySym keysym; char *command;} Key;
 
-static void press(const char *arg) {
+static void press(int arg) {
 	XEvent ev;
 	memset(&ev, 0x00, sizeof(ev));
 	usleep(100000);
 	ev.type = ButtonPress;
-	ev.xbutton.button = (arg[0] < 65 ? arg[0] - 48 : arg[0] - 55);
+	ev.xbutton.button = arg;
 	if (ev.xbutton.button < 1 || ev.xbutton.button > 7) return;
 	ev.xbutton.same_screen = True;
 	XQueryPointer(dpy,root,&ev.xbutton.root,&ev.xbutton.window,&ev.xbutton.x_root,&ev.xbutton.y_root,&ev.xbutton.x,&ev.xbutton.y,&ev.xbutton.state);
@@ -49,7 +49,7 @@ static void command(char *line) {
 	sscanf(line,"%*s %d %d",&x,&y);
 	char *arg1 = strchr(line,' ') + 1;
 	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
-	else if (line[0] == 'b') press(arg1);
+	else if (line[0] == 'b') press(x);
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
 	else if (line[0] == 'c') XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
 	else if (line[0] == 'q') running = False; /* only relevant in interactive mode */
