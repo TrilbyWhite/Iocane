@@ -1,1 +1,69 @@
+.TH IOCANE 1
+
+.SH NAME
+Iocane \- The colorless, oderless, tasteless poison that will rid your system of its rodent infestation
+
+.SH SYNOPSIS
+.B iocane
+[
+.B \-h
+|
+.B \-
+[
+.I <script-file>
+] |
+.I <command-list>
+]
+
+.SH DESCRIPTION
+Iocane simulates X11 mouse events from the keyboard.  Iocane can run in interactive mode for which mappings of keys to commands are defined in iocanerc.  Alternately iocane can be passed a list of commands on the command line, or if passed a single "-" it will read commands from the standard input allowing for iocane script files.
+
+.SH COMMANDS
+This sections is under construction.  Not all options are listed.  All commands can be envoked by their first letter.
+.TP
+.BI powder
+
+Moves cursor off screen
+.TP
+.BI move
+.I x\ y
+
+Move cursor
+.I x
+and
+.I y
+pixels
+.TP
+.BI button
+.I N
+
+Simulate a click on button
+.I N
+.TP
+.BI quit
+
+Exit interactive mode
+.TP
+.BI sleep
+.I S\ [MS]
+
+Sleep for
+.I S
+seconds and
+.I MS
+milliseconds
+.TP
+.BI cursor
+.I N
+
+Sets the root window cursor to
+.I Nth
+member of the X11 cursor font
+.TP
+.I x\ y
+
+Moves cursor to coordinates
+.I x,y
+
+.SH EXAMPLES
 TODO

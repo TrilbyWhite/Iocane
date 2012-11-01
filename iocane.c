@@ -6,39 +6,23 @@
 #include <X11/XKBlib.h>
 #include <string.h>
 
-#define MAXLINE		255
+#define MAXLINE		100
+#define MAXSYMLEN	12
 
 static Display *dpy;
 static int scr, sw, sh;
 static Window root;
 static Bool running = True;
 
-typedef struct {
-	KeySym keysym;
-	void (*func)(const char *);
-	const char *arg;
-} Key;
-
-static void move(const char *arg) {
-	if (arg[0] == 'l') XWarpPointer(dpy,None,None,0,0,0,0,-10,0);
-	if (arg[0] == 'r') XWarpPointer(dpy,None,None,0,0,0,0,10,0);
-	if (arg[0] == 'd') XWarpPointer(dpy,None,None,0,0,0,0,0,10);
-	if (arg[0] == 'u') XWarpPointer(dpy,None,None,0,0,0,0,0,-10);
-}
+typedef struct { KeySym keysym; char *command;} Key;
 
 static void press(const char *arg) {
 	XEvent ev;
 	memset(&ev, 0x00, sizeof(ev));
 	usleep(100000);
 	ev.type = ButtonPress;
-	if (arg[0] == '1') ev.xbutton.button = 1;
-	else if (arg[0] == '2')  ev.xbutton.button = 2;
-	else if (arg[0] == '3')  ev.xbutton.button = 3;
-	else if (arg[0] == 'u')  ev.xbutton.button = 4;
-	else if (arg[0] == 'd')  ev.xbutton.button = 5;
-	else if (arg[0] == 'l')  ev.xbutton.button = 6;
-	else if (arg[0] == 'r')  ev.xbutton.button = 7;
-	else return;
+	ev.xbutton.button = (arg[0] < 65 ? arg[0] - 48 : arg[0] - 55);
+	if (ev.xbutton.button < 1 || ev.xbutton.button > 7) return;
 	ev.xbutton.same_screen = True;
 	XQueryPointer(dpy,root,&ev.xbutton.root,&ev.xbutton.window,&ev.xbutton.x_root,&ev.xbutton.y_root,&ev.xbutton.x,&ev.xbutton.y,&ev.xbutton.state);
 	ev.xbutton.subwindow = ev.xbutton.window;
@@ -55,50 +39,21 @@ static void press(const char *arg) {
 	XFlush(dpy);
 }
 
-static void quit(const char *arg) {
-	running = False;
-}
-
-static Key keys[] = {
-	{ XK_h,		move,	"left"	}, { XK_l,		move,	"right"	}, { XK_j,		move,	"down"	}, { XK_k,		move,	"up"	},
-	{ XK_Left,	move,	"left"	}, { XK_Right,	move,	"right"	}, { XK_Down,	move,	"down"	}, { XK_Up,		move,	"up"	},
-	{ XK_1,		press,	"1"		}, { XK_2,		press,	"2"		}, { XK_3,		press,	"3"		},
-	{ XK_Prior,	press,	"up"	}, { XK_Next,	press,	"down"	},
-	{ XK_4,		press,	"up"	}, { XK_5,		press,	"down"	}, { XK_6,		press,	"left"	}, { XK_7,		press,	"right"	},
-	{ XK_q,		quit,	NULL	},
-};
-
 static void usage() {
-	const char use[] = "\n\
-\033[1mIOCANE\033[0m\n\
-  \"The colorless, oderless, tasteless poision that will elimiate\n\
-   your system's rodent infestation\"\n\n\
-  Copyright 2012, Jesse McClure    License: GPLv3\n\n\
-\033[1mUSAGE\033[0m\n\
-iocane [ -h | powder | move (up|down|left|right) | o[ffset] <x> <y> | button <button> | <x> <y> [<button>] ]\n\n\
-    -h        Show this help menu\n\
-    p[owder]  Move the mouse cursor off screen\n\
-    m[ove]    Move the mouse cursor in the selected direction\n\
-    o[ffset]  Move the mouse cursor <x> and <y> pixels from the current location\n\
-    b[utton]  Simulate a click of mouse button <button>\n\
-                button can be 1,2, or 3 for primary buttons, or\n\
-                up, down, left, or right for scroll buttons\n\
-    <x> <y>   Move the mouse cursor to coordinates provided by <x> and <y>\n\
-                optionally simulate button press of <button> at that location\n\
-    [NO ARG]  With no argument, iocane runs in interactive mode\n\
-                see man page for details\n";
-	printf("%s\n",use);
+	printf("IOCANE: Copyright 2012, Jesse McClure\nSee `man iocane` for commands and examples.\n");
 }
 
 static void command(char *line) {
+	if (line[0] == '\0' || line[0] == '\n' || line[0] == '#') return;
 	int x=0, y=0;
 	sscanf(line,"%*s %d %d",&x,&y);
 	char *arg1 = strchr(line,' ') + 1;
 	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
-	else if (line[0] == 'm' && arg1) move(arg1);
-	else if (line[0] == 'b' && arg1) press(arg1);
-	else if (line[0] == 'o') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
-	else if (line[0] == 's') sleep(x);
+	else if (line[0] == 'b') press(arg1);
+	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
+	else if (line[0] == 'c') XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
+	else if (line[0] == 'q') running = False; /* only relevant in interactive mode */
+	else if (line[0] == 's') { sleep(x); usleep(y*1000); }
 	else XWarpPointer(dpy,None,root,0,0,0,0,x,y);
 	XFlush(dpy);
 }
@@ -121,14 +76,16 @@ static void scriptmode(int argc, const char **argv) {
 	}
 	command(line);
 	free(line);
-	exit(0);
 }
 
-static void stdinmode() {
+static void stdinmode(int argc,const char **argv) {
+	FILE *input = NULL;
+	if (argc == 3) input=fopen(argv[2],"r");
+	if (input == NULL) input = stdin;
 	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
-	while ( (fgets(line,MAXLINE,stdin)) != NULL ) command(line);
+	while ( (fgets(line,MAXLINE,input)) != NULL ) command(line);
 	free(line);
-	exit(0);
+	if (input != stdin) fclose(input);
 }
 
 int main(int argc, const char **argv) {
@@ -137,32 +94,53 @@ int main(int argc, const char **argv) {
 	root = RootWindow(dpy,scr);
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
-	Window w; int i; unsigned int ui; /* ignored return values */
-	int cx,cy;
-	XQueryPointer(dpy,root,&w,&w,&cx,&cy,&i,&i,&ui);
 	if (argc > 1) {
 		if (argv[1][0] == '-' && argv[1][1] == 'h') usage();
-		if (argv[1][0] == '-' && argv[1][1] == '\0') stdinmode();
+		if (argv[1][0] == '-' && argv[1][1] == '\0') stdinmode(argc,argv);
 		else scriptmode(argc,argv);
+		return 0;
 	}
-	/* interactive mode: */
+	/* esle interactive mode: */
+	Key *keys = NULL;
+	char *line = (char *) calloc(MAXLINE+20,sizeof(char));
+	char keystring[20];
+	KeySym keysym;
+	int keycount = 0;
+	chdir(getenv("HOME"));
+	FILE *rcfile = fopen(".iocanerc","r");
+	if (rcfile == NULL) fopen("/usr/share/iocane/iocanerc","r");
+	if (rcfile == NULL) {
+		fprintf(stderr,"IOCANE: no iocanerc file found.\n");
+		return 0;
+	}
+	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
+		if (line[0] == '#' || line[0] == '\n') continue;
+		strncpy(keystring,line,MAXSYMLEN); *strchr(keystring,' ') = '\0';
+		if ( (keysym=XStringToKeysym(keystring)) == NoSymbol ) continue;
+		keys = realloc(keys,(++keycount) * sizeof(Key));
+		keys[keycount-1].keysym = keysym;
+		keys[keycount-1].command = (char *) calloc(strlen(line) - strlen(keystring),sizeof(char));
+		strcpy(keys[keycount-1].command,strchr(line,' ')+1);
+	}
+	free(line);
+	fclose(rcfile);	
 	KeyCode code;
-	for (i = 0; i < sizeof(keys)/sizeof(keys[0]); i++)
-		if ( (code=XKeysymToKeycode(dpy,keys[i].keysym)) ) {
-			XGrabKey(dpy,code,0,root,True,GrabModeAsync,GrabModeAsync);
-			XGrabKey(dpy,code,LockMask,root,True,GrabModeAsync,GrabModeAsync);
-		}
+	int i;
+	for (i = 0; i < keycount; i++) if ( (code=XKeysymToKeycode(dpy,keys[i].keysym)) ) {
+		XGrabKey(dpy,code,0,root,True,GrabModeAsync,GrabModeAsync);
+		XGrabKey(dpy,code,LockMask,root,True,GrabModeAsync,GrabModeAsync);
+	}
 	XEvent ev;
 	XKeyEvent *e;
-	KeySym keysym;
-	while (running && !XNextEvent(dpy,&ev))
-		if (ev.type == KeyPress) {
-			e = &ev.xkey;
-			keysym = XkbKeycodeToKeysym(dpy,(KeyCode)e->keycode,0,0);
-			for (i = 0; i < sizeof(keys)/sizeof(keys[0]); i++)
-				if ( (keysym==keys[i].keysym) && keys[i].func )
-					keys[i].func(keys[i].arg);
-		}
+	while (running && !XNextEvent(dpy,&ev)) if (ev.type == KeyPress) {
+		e = &ev.xkey;
+		keysym = XkbKeycodeToKeysym(dpy,(KeyCode)e->keycode,0,0);
+		for (i = 0; i < keycount; i++)
+			if ( (keysym==keys[i].keysym) && keys[i].command )
+				command(keys[i].command);
+	}
+	for (i = 0; i < keycount; i++) free(keys[i].command);
+	free(keys);
 	XCloseDisplay(dpy);
 	return 0;
 }
