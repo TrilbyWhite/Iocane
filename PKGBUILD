@@ -7,7 +7,7 @@ url="http://github.com/TrilbyWhite/Iocane.git"
 arch=('any')
 license=('GPLv3')
 depends=('libx11')
-source=('https://github.com/TrilbyWhite/Iocane/raw/master/iocane.tar.gz')
+source=('https://github.com/TrilbyWhite/Iocane/raw/master/'$pkgname-$pkgver'.tar.gz')
 
 build() {
     cd "$srcdir"
