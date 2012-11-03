@@ -11,14 +11,26 @@
 
 
 # movement
-h move -10 0
-j move 0 10
-k move 0 -10
-l move 10 0
-Left move -10 0
-Down move 0 10
-Up move 0 -10
-Right move 10 0
+h move -8 0
+j move 0 8
+k move 0 -8
+l move 8 0
+
+Left move -16 0
+Down move 0 16
+Up move 0 -16
+Right move 16 0
+
+# keypad
+KP_Home move -32 -32
+KP_Up move 0 -32
+KP_Prior move 32 -32
+KP_Left move -32 0
+KP_Begin button 1
+KP_Right move 32 0
+KP_End move -32 32
+KP_Down move 0 32
+KP_Next move 32 32
 
 # buttons
 1 button 1
@@ -35,4 +47,5 @@ Next button 5
 o 0 0
 p powder
 q quit
+Escape quit
 
