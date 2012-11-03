@@ -2,22 +2,3 @@ IOCANE
   "The colorless, oderless, tasteless poision that will elimiate
    your system's rodent infestation"
 
-  Copyright 2012, Jesse McClure    License: GPLv3
-
-USAGE
-iocane [ -h | powder | move (up|down|left|right) | button <button> | <x> <y> [<button>] ]
-
-    -h        Show this help menu
-    p[owder]  Move the mouse cursor off screen
-    m[ove]    Move the mouse cursor in the selected direction
-    b[utton]  Simulate a click of mouse button <button>
-                button can be 1,2, or 3 for primary buttons, or
-                up, down, left, or right for scroll buttons
-    <x> <y>   Move the mouse cursor to coordinates provided by <x> and <y>
-                optionally simulate button press of <button> at that location
-    [NO ARG]  With no argument, iocane runs in interactive mode
-                see man page for details
-
-NOTE: The man page is under construction
-
-(updated by J.M. 29 Oct 2012)
