@@ -22,7 +22,6 @@ static void press(int arg) {
 	usleep(100000);
 	ev.type = ButtonPress;
 	ev.xbutton.button = arg;
-	if (ev.xbutton.button < 1 || ev.xbutton.button > 7) return;
 	ev.xbutton.same_screen = True;
 	XQueryPointer(dpy,root,&ev.xbutton.root,&ev.xbutton.window,&ev.xbutton.x_root,&ev.xbutton.y_root,&ev.xbutton.x,&ev.xbutton.y,&ev.xbutton.state);
 	ev.xbutton.subwindow = ev.xbutton.window;
@@ -37,10 +36,6 @@ static void press(int arg) {
 	ev.xbutton.state = 0x400;
 	XSendEvent(dpy,PointerWindow, True, 0xfff, &ev);
 	XFlush(dpy);
-}
-
-static void usage() {
-	printf("IOCANE: Copyright 2012, Jesse McClure\nSee `man iocane` for commands and examples.\n");
 }
 
 static void command(char *line) {
@@ -63,10 +58,8 @@ static void scriptmode(int argc, const char **argv) {
 	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
 	char *p = line;
 	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == ':') {
-			command(line);
-			p = line;
-		}
+		if (argv[i][0] == ':')
+			command((p=line));
 		else {
 			if (p > line) {*p=' '; p++;}
 			len = strlen(argv[i]);
@@ -95,12 +88,15 @@ int main(int argc, const char **argv) {
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
 	if (argc > 1) {
-		if (argv[1][0] == '-' && argv[1][1] == 'h') usage();
-		if (argv[1][0] == '-' && argv[1][1] == '\0') stdinmode(argc,argv);
+		if (argv[1][0] == '-' && argv[1][1] == 'h')
+			printf("IOCANE: Copyright 2012, Jesse McClure\nSee `man iocane` for commands and examples.\n");
+		if (argv[1][0] == '-' && argv[1][1] == '\0')
+			stdinmode(argc,argv);
 		else scriptmode(argc,argv);
+		XCloseDisplay(dpy);
 		return 0;
 	}
-	/* esle interactive mode: */
+	/* no args -> interactive mode: */
 	Key *keys = NULL;
 	char *line = (char *) calloc(MAXLINE+20,sizeof(char));
 	char keystring[20];
