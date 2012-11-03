@@ -1,20 +1,18 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
-#include <X11/XKBlib.h>
 #include <string.h>
+#include <X11/Xlib.h>
 
 #define MAXLINE		100
 #define MAXSYMLEN	12
+
+typedef struct { KeyCode key; char *command;} Key;
 
 static Display *dpy;
 static int scr, sw, sh;
 static Window root;
 static Bool running = True;
-
-typedef struct { KeySym keysym; char *command;} Key;
 
 static void press(int arg) {
 	XEvent ev;
@@ -98,41 +96,38 @@ int main(int argc, const char **argv) {
 	}
 	/* no args -> interactive mode: */
 	Key *keys = NULL;
-	char *line = (char *) calloc(MAXLINE+20,sizeof(char));
-	char keystring[20];
+	char *line = (char *) calloc(MAXLINE+MAXSYMLEN+2,sizeof(char));
+	char keystring[MAXSYMLEN];
 	KeySym keysym;
-	int keycount = 0;
 	chdir(getenv("HOME"));
 	FILE *rcfile = fopen(".iocanerc","r");
 	if (rcfile == NULL) fopen("/usr/share/iocane/iocanerc","r");
 	if (rcfile == NULL) {
 		fprintf(stderr,"IOCANE: no iocanerc file found.\n");
+		XCloseDisplay(dpy);
 		return 0;
 	}
+	int i = 0;
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
 		if (line[0] == '#' || line[0] == '\n') continue;
 		strncpy(keystring,line,MAXSYMLEN); *strchr(keystring,' ') = '\0';
 		if ( (keysym=XStringToKeysym(keystring)) == NoSymbol ) continue;
-		keys = realloc(keys,(++keycount) * sizeof(Key));
-		keys[keycount-1].keysym = keysym;
-		keys[keycount-1].command = (char *) calloc(strlen(line) - strlen(keystring),sizeof(char));
-		strcpy(keys[keycount-1].command,strchr(line,' ')+1);
+		keys = realloc(keys,(i+1) * sizeof(Key));
+		keys[i].key = XKeysymToKeycode(dpy,keysym);
+		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),sizeof(char));
+		strcpy(keys[i].command,strchr(line,' ')+1);
+		XGrabKey(dpy,keys[i].key,0,root,True,GrabModeAsync,GrabModeAsync);
+		XGrabKey(dpy,keys[i++].key,LockMask,root,True,GrabModeAsync,GrabModeAsync);
 	}
+	int keycount = i;
 	free(line);
 	fclose(rcfile);	
-	KeyCode code;
-	int i;
-	for (i = 0; i < keycount; i++) if ( (code=XKeysymToKeycode(dpy,keys[i].keysym)) ) {
-		XGrabKey(dpy,code,0,root,True,GrabModeAsync,GrabModeAsync);
-		XGrabKey(dpy,code,LockMask,root,True,GrabModeAsync,GrabModeAsync);
-	}
 	XEvent ev;
 	XKeyEvent *e;
 	while (running && !XNextEvent(dpy,&ev)) if (ev.type == KeyPress) {
 		e = &ev.xkey;
-		keysym = XkbKeycodeToKeysym(dpy,(KeyCode)e->keycode,0,0);
 		for (i = 0; i < keycount; i++)
-			if ( (keysym==keys[i].keysym) && keys[i].command )
+			if (e->keycode == keys[i].key && keys[i].command)
 				command(keys[i].command);
 	}
 	for (i = 0; i < keycount; i++) free(keys[i].command);
