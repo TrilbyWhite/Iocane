@@ -43,6 +43,13 @@ KP_Next move 32 32
 Prior button 4
 Next button 5
 
+# cursors (see X Font Cursors for options)
+x cursor 0
+a cursor 68
+s cursor 130
+d cursor 64
+f cursor 142
+
 # misc
 o 0 0
 p powder

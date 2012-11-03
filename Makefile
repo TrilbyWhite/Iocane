@@ -1,6 +1,7 @@
 
 PROG = iocane
 FLAGS = -lX11
+VER = 0.2
 
 ${PROG}: ${PROG}.c
 	@gcc -o ${PROG} ${PROG}.c ${FLAGS}
@@ -14,7 +15,7 @@ clean:
 
 tarball: clean
 	@rm -rf ${PROG}.tar.gz
-	@tar -czf ${PROG}.tar.gz *
+	@tar -czf ${PROG}-${VER}.tar.gz *
 
 install: ${PROG} man
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
