@@ -20,7 +20,7 @@ tarball: clean
 install: ${PROG} man
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@install -m755 ${PROG} ${DESTDIR}${PREFIX}/bin/${PROG}
-	@install -Dm666 ${PROG}.1.gz ${DESTDIR}${PREFIX}/man1/${PROG}.1.gz
+	@install -Dm666 ${PROG}.1.gz ${DESTDIR}${PREFIX}/share/man/man1/${PROG}.1.gz
 	@install -Dm666 ${PROG}rc ${DESTDIR}${PREFIX}/share/${PROG}/${PROG}rc
 	
 
