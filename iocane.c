@@ -39,7 +39,8 @@ static void press(int arg) {
 static void command(char *line) {
 	if (line[0] == '\0' || line[0] == '\n' || line[0] == '#') return;
 	int x=0, y=0;
-	sscanf(line,"%*s %d %d",&x,&y);
+	if (line[0] > 47 && line[0] < 58) sscanf(line,"%d %d",&x,&y);
+	else sscanf(line,"%*s %d %d",&x,&y);
 	char *arg1 = strchr(line,' ') + 1;
 	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
 	else if (line[0] == 'b') press(x);
