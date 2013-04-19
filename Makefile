@@ -1,7 +1,7 @@
 
 PROG = iocane
 FLAGS = -lX11
-VER = 0.2
+VER = 0.3
 
 ${PROG}: ${PROG}.c
 	@gcc -o ${PROG} ${PROG}.c ${FLAGS}
