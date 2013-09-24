@@ -10,12 +10,12 @@ depends=('libx11')
 source=('https://github.com/TrilbyWhite/Iocane/raw/master/'$pkgname-$pkgver'.tar.gz')
 
 build() {
-    cd "${srcdir}/${pkgname}-${pkgver}"
+    cd "${srcdir}"
 	make
 }
 
 package() {
-    cd "${srcdir}/${pkgname}-${pkgver}"
+    cd "${srcdir}"
 	make DESTDIR="${pkgdir}" install
 }
 
