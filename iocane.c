@@ -7,6 +7,10 @@
 #define MAXLINE		100
 #define MAXSYMLEN	12
 
+#define HELP	\
+	"IOCANE: Copyright 2012, Jesse McClure\n" \
+	"See `man iocane` for commands and examples.\n"
+
 typedef struct { KeyCode key; char *command;} Key;
 
 static Display *dpy;
@@ -21,11 +25,15 @@ static void press(int arg) {
 	ev.type = ButtonPress;
 	ev.xbutton.button = arg;
 	ev.xbutton.same_screen = True;
-	XQueryPointer(dpy,root,&ev.xbutton.root,&ev.xbutton.window,&ev.xbutton.x_root,&ev.xbutton.y_root,&ev.xbutton.x,&ev.xbutton.y,&ev.xbutton.state);
+	XQueryPointer(dpy,root, &ev.xbutton.root, &ev.xbutton.window,
+			&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x, 
+			&ev.xbutton.y,&ev.xbutton.state);
 	ev.xbutton.subwindow = ev.xbutton.window;
 	while(ev.xbutton.subwindow) {
 		ev.xbutton.window = ev.xbutton.subwindow;
-		XQueryPointer(dpy,ev.xbutton.window,&ev.xbutton.root,&ev.xbutton.subwindow,&ev.xbutton.x_root,&ev.xbutton.y_root,&ev.xbutton.x,&ev.xbutton.y,&ev.xbutton.state);
+		XQueryPointer(dpy, ev.xbutton.window, &ev.xbutton.root, &ev.xbutton.subwindow, 
+				&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x, &ev.xbutton.y,
+				&ev.xbutton.state);
 	}
 	XSendEvent(dpy,PointerWindow,True,0xfff,&ev);
 	XFlush(dpy);
@@ -41,7 +49,7 @@ static void command(char *line) {
 	int x=0, y=0;
 	if (line[0] > 47 && line[0] < 58) sscanf(line,"%d %d",&x,&y);
 	else sscanf(line,"%*s %d %d",&x,&y);
-	char *arg1 = strchr(line,' ') + 1;
+//	char *arg1 = strchr(line,' ') + 1;
 	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
 	else if (line[0] == 'b') press(x);
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
@@ -52,46 +60,21 @@ static void command(char *line) {
 	XFlush(dpy);
 }
 
-static void scriptmode(int argc, const char **argv) {
-	int i,len;
-	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
-	char *p = line;
-	for (i = 1; i < argc; i++) {
-		if (argv[i][0] == ':')
-			command((p=line));
-		else {
-			if (p > line) {*p=' '; p++;}
-			len = strlen(argv[i]);
-			strncpy(p,argv[i],len);
-			*(p+=len) = '\0';
-		}
-	}
-	command(line);
-	free(line);
-}
-
-static void stdinmode(int argc,const char **argv) {
-	FILE *input = NULL;
-	if (argc == 3) input=fopen(argv[2],"r");
-	if (input == NULL) input = stdin;
-	char *line = (char *) calloc(MAXLINE+1,sizeof(char));
-	while ( (fgets(line,MAXLINE,input)) != NULL ) command(line);
-	free(line);
-	if (input != stdin) fclose(input);
-}
-
 int main(int argc, const char **argv) {
+	int mode = 0;
+	if (argc > 1 && argv[1][0] == '-') {
+		if (argv[1][1] == 'h') { printf(HELP); exit(0); }
+		else if (argv[1][1] == 'i') mode = 1;
+	}
 	if (!(dpy=XOpenDisplay(0x0))) return 1;
 	scr = DefaultScreen(dpy);
 	root = RootWindow(dpy,scr);
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
-	if (argc > 1) {
-		if (argv[1][0] == '-' && argv[1][1] == 'h')
-			printf("IOCANE: Copyright 2012, Jesse McClure\nSee `man iocane` for commands and examples.\n");
-		if (argv[1][0] == '-' && argv[1][1] == '\0')
-			stdinmode(argc,argv);
-		else scriptmode(argc,argv);
+	if (mode == 0) {
+		char line[MAXLINE+1];
+		while ( (fgets(line,MAXLINE,stdin)) != NULL )
+			command(line);
 		XCloseDisplay(dpy);
 		return 0;
 	}
@@ -108,7 +91,8 @@ int main(int argc, const char **argv) {
 		XCloseDisplay(dpy);
 		return 0;
 	}
-	int i = 0;
+	int i = 0, j;
+	unsigned int mods[] = {0,LockMask,Mod2Mask,LockMask|Mod2Mask};
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
 		if (line[0] == '#' || line[0] == '\n') continue;
 		strncpy(keystring,line,MAXSYMLEN); *strchr(keystring,' ') = '\0';
@@ -117,8 +101,9 @@ int main(int argc, const char **argv) {
 		keys[i].key = XKeysymToKeycode(dpy,keysym);
 		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),sizeof(char));
 		strcpy(keys[i].command,strchr(line,' ')+1);
-		XGrabKey(dpy,keys[i].key,0,root,True,GrabModeAsync,GrabModeAsync);
-		XGrabKey(dpy,keys[i++].key,LockMask,root,True,GrabModeAsync,GrabModeAsync);
+		for (j = 0; j < 4; j++)
+			XGrabKey(dpy,keys[i].key,mods[j],root,True,GrabModeAsync,GrabModeAsync);
+		i++;
 	}
 	int keycount = i;
 	free(line);
