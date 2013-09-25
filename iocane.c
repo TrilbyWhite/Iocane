@@ -61,11 +61,18 @@ static void command(char *line) {
 }
 
 int main(int argc, const char **argv) {
-	int mode = 0;
-	if (argc > 1 && argv[1][0] == '-') {
-		if (argv[1][1] == 'h') { printf(HELP); exit(0); }
-		else if (argv[1][1] == 'i') mode = 1;
+	int i, mode = 0;
+	FILE *input = NULL;
+	for (i = 0; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			if (argv[i][1] == 'h') { printf(HELP); exit(0); }
+			else if (argv[i][1] == 'i') mode = 1;
+		}
+		else {
+			input = fopen(argv[i],"r");
+		}
 	}
+	if (!input) input = stdin;
 	if (!(dpy=XOpenDisplay(0x0))) return 1;
 	scr = DefaultScreen(dpy);
 	root = RootWindow(dpy,scr);
@@ -73,7 +80,7 @@ int main(int argc, const char **argv) {
 	sh = DisplayHeight(dpy,scr);
 	if (mode == 0) {
 		char line[MAXLINE+1];
-		while ( (fgets(line,MAXLINE,stdin)) != NULL )
+		while ( (fgets(line,MAXLINE,input)) != NULL )
 			command(line);
 		XCloseDisplay(dpy);
 		return 0;
@@ -91,7 +98,7 @@ int main(int argc, const char **argv) {
 		XCloseDisplay(dpy);
 		return 0;
 	}
-	int i = 0, j;
+	int j; i = 0;
 	unsigned int mods[] = {0,LockMask,Mod2Mask,LockMask|Mod2Mask};
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
 		if (line[0] == '#' || line[0] == '\n') continue;
