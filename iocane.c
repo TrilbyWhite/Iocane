@@ -1,3 +1,23 @@
+/************************************************************************\
+* IOCANE - Simulate X11 mouse events
+*
+* Author: Jesse McClure, copyright 2012-2013
+* License: GPLv3
+*
+*    This program is free software: you can redistribute it and/or modify
+*    it under the terms of the GNU General Public License as published by
+*    the Free Software Foundation, either version 3 of the License, or
+*    (at your option) any later version.
+*
+*    This program is distributed in the hope that it will be useful,
+*    but WITHOUT ANY WARRANTY; without even the implied warranty of
+*    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*    GNU General Public License for more details.
+*
+*    You should have received a copy of the GNU General Public License
+*    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*
+\************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,9 +51,9 @@ static void press(int arg) {
 	ev.xbutton.subwindow = ev.xbutton.window;
 	while(ev.xbutton.subwindow) {
 		ev.xbutton.window = ev.xbutton.subwindow;
-		XQueryPointer(dpy, ev.xbutton.window, &ev.xbutton.root, &ev.xbutton.subwindow, 
-				&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x, &ev.xbutton.y,
-				&ev.xbutton.state);
+		XQueryPointer(dpy, ev.xbutton.window, &ev.xbutton.root,
+				&ev.xbutton.subwindow, &ev.xbutton.x_root, &ev.xbutton.y_root, 
+				&ev.xbutton.x, &ev.xbutton.y, &ev.xbutton.state);
 	}
 	XSendEvent(dpy,PointerWindow,True,0xfff,&ev);
 	XFlush(dpy);
@@ -49,11 +69,11 @@ static void command(char *line) {
 	int x=0, y=0;
 	if (line[0] > 47 && line[0] < 58) sscanf(line,"%d %d",&x,&y);
 	else sscanf(line,"%*s %d %d",&x,&y);
-//	char *arg1 = strchr(line,' ') + 1;
 	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
 	else if (line[0] == 'b') press(x);
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
-	else if (line[0] == 'c') XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
+	else if (line[0] == 'c')
+		XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
 	else if (line[0] == 'q') running = False;
 	else if (line[0] == 'e') running = False;
 	else if (line[0] == 's') { sleep(x); usleep(y*1000); }
@@ -96,18 +116,25 @@ int main(int argc, const char **argv) {
 		return 0;
 	}
 	/* no args -> interactive mode: */
-	Key *keys = NULL;
-	char *line = (char *) calloc(MAXLINE+MAXSYMLEN+2,sizeof(char));
-	char keystring[MAXSYMLEN];
-	KeySym keysym;
-	chdir(getenv("HOME"));
-	FILE *rcfile = fopen(".iocanerc","r");
-	if (rcfile == NULL) fopen("/usr/share/iocane/iocanerc","r");
-	if (rcfile == NULL) {
+	char *dir = getenv("PWD");
+	chdir(getenv("XDG_CONFIG_HOME"));
+	chdir("iocane");
+	FILE *rcfile = fopen("config","r");
+	if (!rcfile) {
+		chdir(getenv("HOME"));
+		rcfile = fopen(".iocanerc","r");
+	}
+	if (!rcfile) rcfile = fopen("/usr/share/iocane/iocanerc","r");
+	if (dir) chdir(dir);
+	if (!rcfile) {
 		fprintf(stderr,"IOCANE: no iocanerc file found.\n");
 		XCloseDisplay(dpy);
 		return 0;
 	}
+	Key *keys = NULL;
+	KeySym keysym;
+	char *line = (char *) calloc(MAXLINE+MAXSYMLEN+2,sizeof(char));
+	char keystring[MAXSYMLEN];
 	int j; i = 0;
 	unsigned int mods[] = {0,LockMask,Mod2Mask,LockMask|Mod2Mask};
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
@@ -116,10 +143,11 @@ int main(int argc, const char **argv) {
 		if ( (keysym=XStringToKeysym(keystring)) == NoSymbol ) continue;
 		keys = realloc(keys,(i+1) * sizeof(Key));
 		keys[i].key = XKeysymToKeycode(dpy,keysym);
-		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),sizeof(char));
+		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),
+				sizeof(char));
 		strcpy(keys[i].command,strchr(line,' ')+1);
-		for (j = 0; j < 4; j++)
-			XGrabKey(dpy,keys[i].key,mods[j],root,True,GrabModeAsync,GrabModeAsync);
+		for (j = 0; j < 4; j++) XGrabKey(dpy, keys[i].key, mods[j],
+				root,True,GrabModeAsync, GrabModeAsync);
 		i++;
 	}
 	int keycount = i;

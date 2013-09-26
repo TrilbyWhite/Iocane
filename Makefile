@@ -1,7 +1,8 @@
 
-PROG = iocane
-FLAGS = -lX11
-VER = 0.4
+PROG    =  iocane
+FLAGS   =  -lX11
+VER     =  0.5
+PREFIX  ?= /usr
 
 ${PROG}: ${PROG}.c
 	@gcc -o ${PROG} ${PROG}.c ${FLAGS}
@@ -14,7 +15,7 @@ clean:
 	@rm -rf ${PROG} ${PROG}.1.gz
 
 tarball: clean
-	@rm -rf ${PROG}-*.tar.gz
+	#@rm -rf ${PROG}-*.tar.gz
 	@tar -czf ${PROG}-${VER}.tar.gz *
 
 install: ${PROG} man
