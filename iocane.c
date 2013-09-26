@@ -54,7 +54,8 @@ static void command(char *line) {
 	else if (line[0] == 'b') press(x);
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
 	else if (line[0] == 'c') XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
-	else if (line[0] == 'q') running = False; /* only relevant in interactive mode */
+	else if (line[0] == 'q') running = False;
+	else if (line[0] == 'e') running = False;
 	else if (line[0] == 's') { sleep(x); usleep(y*1000); }
 	else XWarpPointer(dpy,None,root,0,0,0,0,x,y);
 	XFlush(dpy);
@@ -63,26 +64,35 @@ static void command(char *line) {
 int main(int argc, const char **argv) {
 	int i, mode = 0;
 	FILE *input = NULL;
-	for (i = 0; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			if (argv[i][1] == 'h') { printf(HELP); exit(0); }
-			else if (argv[i][1] == 'i') mode = 1;
-		}
-		else {
-			input = fopen(argv[i],"r");
-		}
-	}
-	if (!input) input = stdin;
 	if (!(dpy=XOpenDisplay(0x0))) return 1;
 	scr = DefaultScreen(dpy);
 	root = RootWindow(dpy,scr);
 	sw = DisplayWidth(dpy,scr);
 	sh = DisplayHeight(dpy,scr);
-	if (mode == 0) {
+	for (i = 1; i < argc; i++) {
+		if (argv[i][0] == '-') {
+			if (argv[i][1] == 'h') { printf(HELP); exit(0); }
+			else if (argv[i][1] == 'i') mode = 1;
+			else if (argv[i][1] == 's') mode = 2;
+			else if (argv[i][1] == 'c' && argc > i+1) {
+				command((char *)argv[(++i)]);
+				if (!mode) mode = -1;
+			}
+		}
+		else {
+			printf("in = ",argv[i]);
+			input = fopen(argv[i],"r");
+			if (input) mode = 3;
+		}
+	}
+	if (mode < 0) exit(0);
+	if (!input) input = stdin;
+	if (mode == 0 || mode == 2 || mode == 3) {
 		char line[MAXLINE+1];
-		while ( (fgets(line,MAXLINE,input)) != NULL )
+		while (running && (fgets(line,MAXLINE,input)) != NULL)
 			command(line);
 		XCloseDisplay(dpy);
+		if (mode == 3) fclose(input);
 		return 0;
 	}
 	/* no args -> interactive mode: */
