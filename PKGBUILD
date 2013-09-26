@@ -1,6 +1,6 @@
 # Maintainer: Jesse McClure AKA "Trilby" <jmcclure [at] cns [dot] umass [dot] edu>
 pkgname=iocane
-pkgver=0.4
+pkgver=0.5
 pkgrel=1
 pkgdesc="Simulate X11 mouse events from keyboard"
 url="http://github.com/TrilbyWhite/Iocane.git"
