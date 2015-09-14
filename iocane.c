@@ -42,10 +42,31 @@ typedef enum {
     INPUTFILE /*! input from file only */
 } OperationMode;
 
+static Key *keys = NULL; /* this will hold a table `key [keysymb] -> command [string]' */
+int keycount; /* number of keys in `keys' */
 static Display *dpy;
 static int scr, sw, sh;
 static Window root;
 static Bool running = True;
+
+
+/* list of keymasks for which to grab the keys */
+static const unsigned int mods_to_grab[] = {0,LockMask,Mod2Mask,LockMask|Mod2Mask};
+
+/* grab all keys
+ * For every valid keycode found in a config file, the associated key on
+ * the keyboard is grabbed.
+ */
+static void grab_keys()
+{
+    int i,j;
+    /* iterate over all elements in `keys' */
+    for (i = 0; i < keycount; i++)
+    {
+        for (j = 0; j < (sizeof(mods_to_grab)/sizeof(unsigned int)); j++)
+            XGrabKey(dpy, keys[i].key, mods_to_grab[j], root,True,GrabModeAsync, GrabModeAsync);
+    }
+}
 
 /*! Send press-wait-release sequence to X for mouse button no `arg'. */
 static void press(int arg) {
@@ -169,17 +190,11 @@ int main(int argc, const char **argv) {
 		return 0;
 	}
 
-    /* parse config file
-     * For every valid keycode found in a config file, the associated key on
-     * the keyboard is grabbed.
-     */
-	Key *keys = NULL; /* this will hold a table `key [keysymb] -> command [string]' */
+    /* parse config file */
 	KeySym keysym;
 	char *line = (char *) calloc(MAXLINE+MAXSYMLEN+2,sizeof(char));
 	char keystring[MAXSYMLEN];
-	int j; i = 0;
-    /* list of keymasks for which to grab the keys */
-	unsigned int mods[] = {0,LockMask,Mod2Mask,LockMask|Mod2Mask};
+	i = 0;
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
 		if (line[0] == '#' || line[0] == '\n') continue;
         /* split each line at space */
@@ -191,22 +206,22 @@ int main(int argc, const char **argv) {
 		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),
 				sizeof(char));
 		strcpy(keys[i].command,strchr(line,' ')+1);
-        /* get control over the identified keys from the config file */
-		for (j = 0; j < 4; j++) XGrabKey(dpy, keys[i].key, mods[j],
-				root,True,GrabModeAsync, GrabModeAsync);
 		i++;
 	}
+	keycount = i;
     /* done parsing; clean up */
-	int keycount = i;
 	free(line);
 	fclose(rcfile);
 
+    /* actually grab the keys */
+    grab_keys();
+
+    /* loop for interactive mode
+     * Wait for event (blocks) of a grabbed key.  If the key is registered in
+     * the `keys' list, then the associated command is executed.
+     */
 	XEvent ev;
 	XKeyEvent *e;
-    /* wait for event (blocks) of a grabbed key
-     * If the key is registered in the keys list, then the associated command
-     * is executed.
-     */
 	while (running && !XNextEvent(dpy,&ev)) if (ev.type == KeyPress) {
 		e = &ev.xkey;
 		for (i = 0; i < keycount; i++)
