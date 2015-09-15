@@ -56,3 +56,5 @@ p powder
 q quit
 Escape quit
 
+# toggle input on right Control
+Control_R toggle

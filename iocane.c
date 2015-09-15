@@ -38,12 +38,22 @@ typedef enum {
     UNSET = 0, /*! no mode selected yet */
     STDIN, /*! input from stdin (default) */
     INTERACTIVE, /*! interpret key strokes */
+    INTERACTIVE_DISABLED, /*! Do not grab keys, only the key bound to toggle commands. */
     COMMAND, /*! input from -c commands only, no other sources given */
     INPUTFILE /*! input from file only */
 } OperationMode;
 
-static Key *keys = NULL; /* this will hold a table `key [keysymb] -> command [string]' */
-int keycount; /* number of keys in `keys' */
+/* This will hold a table `key [keysymb] -> command [string]' of length `keycount' */
+static Key *keys = NULL;
+static unsigned int keycount = 0; /* number of keys in `keys' */
+/* This will hold the one special key binding to grab/ungrab all other keys.
+ * If set to 0 (invalid KeyCode), there is no such key.
+ */
+#define NO_TOGGLE_KEY 0
+static KeyCode grab_ungrab_key = NO_TOGGLE_KEY;
+static Bool grab_ungrab_key_grabbed = False;
+
+OperationMode mode = STDIN; /* assume default mode */
 static Display *dpy;
 static int scr, sw, sh;
 static Window root;
@@ -65,6 +75,48 @@ static void grab_keys()
     {
         for (j = 0; j < (sizeof(mods_to_grab)/sizeof(unsigned int)); j++)
             XGrabKey(dpy, keys[i].key, mods_to_grab[j], root,True,GrabModeAsync, GrabModeAsync);
+    }
+    /* if defined and not already grabbed, grab the special key to grab/ungrab
+     * all keys */
+    if ((grab_ungrab_key != NO_TOGGLE_KEY) && (grab_ungrab_key_grabbed == False))
+    {
+        for (j = 0; j < (sizeof(mods_to_grab)/sizeof(unsigned int)); j++)
+            XGrabKey(dpy, grab_ungrab_key, mods_to_grab[j], root,True,GrabModeAsync, GrabModeAsync);
+        grab_ungrab_key_grabbed = True;
+    }
+}
+
+/* ungrab all keys */
+static void ungrab_keys()
+{
+    int i, j;
+    for (i = 0; i < keycount; i++)
+    {
+        for (j = 0; j < (sizeof(mods_to_grab)/sizeof(unsigned int)); j++)
+            XUngrabKey(dpy, keys[i].key, mods_to_grab[j], root);
+    }
+}
+
+/* Toggle whether to grab keys or not in interactive mode.
+ * If not in interactive mode (see `mode') print an error.
+ */
+static void toggle_interactive_mode()
+{
+    switch (mode)
+    {
+        case INTERACTIVE:
+            ungrab_keys();
+            printf("interactive mode off\n");
+            mode = INTERACTIVE_DISABLED;
+            break;
+        case INTERACTIVE_DISABLED:
+            grab_keys();
+            printf("interactive mode re-activated\n");
+            mode = INTERACTIVE;
+            break;
+        default:
+            fprintf(stderr, "Toggle command called in non-interactive mode.");
+            break;
     }
 }
 
@@ -131,7 +183,6 @@ static void command(char *line) {
 
 int main(int argc, const char **argv) {
 	int i = 0;
-    OperationMode mode = STDIN; /* assume default mode */
 	FILE *input = NULL;
     /* Try to connect to X server */
 	if (!(dpy=XOpenDisplay(0x0))) return 1;
@@ -198,22 +249,29 @@ int main(int argc, const char **argv) {
     /* parse config file */
 	KeySym keysym;
 	char *line = (char *) calloc(MAXLINE+MAXSYMLEN+2,sizeof(char));
+    char *command_string;
 	char keystring[MAXSYMLEN];
-	i = 0;
+	keycount = 0;
 	while (fgets(line,MAXLINE+MAXSYMLEN+2,rcfile) != NULL) {
 		if (line[0] == '#' || line[0] == '\n') continue;
-        /* split each line at space */
+        /* split each line at space, parse into keysym,command_string */
 		strncpy(keystring,line,MAXSYMLEN); *strchr(keystring,' ') = '\0';
 		if ( (keysym=XStringToKeysym(keystring)) == NoSymbol ) continue;
-        /* add keysymbol and command to keys */
-		keys = realloc(keys,(i+1) * sizeof(Key));
-		keys[i].key = XKeysymToKeycode(dpy,keysym);
-		keys[i].command = (char *) calloc(strlen(line) - strlen(keystring),
-				sizeof(char));
-		strcpy(keys[i].command,strchr(line,' ')+1);
-		i++;
+		command_string = (char *) calloc(strlen(line) - strlen(keystring), sizeof(char));
+		strcpy(command_string,strchr(line,' ')+1);
+        /* check, if it's the toggle command */
+        if (command_string[0] == 't') {
+            /* if so, set the special toggle key */
+            grab_ungrab_key = XKeysymToKeycode(dpy,keysym);
+        }
+        else {
+            /* otherwise (normal key) add keysymbol and command to keys */
+            keys = realloc(keys, (keycount+1) * sizeof(Key));
+            keys[keycount].key = XKeysymToKeycode(dpy,keysym);
+            keys[keycount].command = command_string;
+            keycount++;
+        }
 	}
-	keycount = i;
     /* done parsing; clean up */
 	free(line);
 	fclose(rcfile);
@@ -229,15 +287,20 @@ int main(int argc, const char **argv) {
 	XKeyEvent *e;
 	while (running && !XNextEvent(dpy,&ev)) if (ev.type == KeyPress) {
 		e = &ev.xkey;
-		for (i = 0; i < keycount; i++)
-			if (e->keycode == keys[i].key && keys[i].command)
-				command(keys[i].command); /* execute associated command */
+        if (e->keycode == grab_ungrab_key) {
+            toggle_interactive_mode();
+        }
+        else {
+            for (i = 0; i < keycount; i++)
+                if (e->keycode == keys[i].key && keys[i].command)
+                    command(keys[i].command); /* execute associated command */
+        }
 	}
 
     /* program done; cleanup */
 	for (i = 0; i < keycount; i++) free(keys[i].command);
 	free(keys);
-	XCloseDisplay(dpy);
+	XCloseDisplay(dpy); /* close connection to X server and release resources */
 	return 0;
 }
 
