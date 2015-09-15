@@ -120,8 +120,11 @@ static void toggle_interactive_mode()
     }
 }
 
-/*! Send press-wait-release sequence to X for mouse button no `arg'. */
-static void press(int arg) {
+/*! Send press-wait-release sequence to X for mouse button no `arg'.
+ * Parts of this sequence can be disabled by passing `False' for doPress or
+ * doRelease.
+ * */
+static void press(int arg, Bool doPress, Bool doRelease) {
 	XEvent ev;
 	memset(&ev, 0x00, sizeof(ev));
 	usleep(100000); /* wait for 0.1 s */
@@ -139,15 +142,20 @@ static void press(int arg) {
 				&ev.xbutton.subwindow, &ev.xbutton.x_root, &ev.xbutton.y_root,
 				&ev.xbutton.x, &ev.xbutton.y, &ev.xbutton.state);
 	}
-    /* send press command */
-	XSendEvent(dpy,PointerWindow,True,0xfff,&ev);
-	XFlush(dpy);
-	usleep(100000); /* wait for 0.1 s */
-	ev.type = ButtonRelease;
-	ev.xbutton.state = 0x400;
-    /* send release command */
-	XSendEvent(dpy,PointerWindow, True, 0xfff, &ev);
-	XFlush(dpy);
+    if (doPress) {
+        /* send press command */
+        XSendEvent(dpy,PointerWindow,True,0xfff,&ev);
+        XFlush(dpy);
+        usleep(100000); /* wait for 0.1 s */
+    }
+    if (doRelease)
+    {
+        /* send release command */
+        ev.type = ButtonRelease;
+        ev.xbutton.state = 0x400;
+        XSendEvent(dpy,PointerWindow, True, 0xfff, &ev);
+        XFlush(dpy);
+    }
 }
 
 
@@ -169,7 +177,9 @@ static void command(char *line) {
     /* interpret command (actually only first character is used),
      * call appropriate X function */
 	if      (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
-	else if (line[0] == 'b') press(x);
+	else if (line[0] == 'b') press(x, True, True); /* press and release */
+	else if (line[0] == 'h') press(x, True, False); /* press without release */
+	else if (line[0] == 'r') press(x, False, True); /* release without press */
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
 	else if (line[0] == 'c')
 		XDefineCursor(dpy,root,XCreateFontCursor(dpy,x));
