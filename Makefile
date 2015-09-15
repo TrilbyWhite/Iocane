@@ -1,7 +1,7 @@
 
 PROG    =  iocane
 FLAGS   =  -lX11
-VER     =  0.5
+VER     =  0.6
 PREFIX  ?= /usr
 
 ${PROG}: ${PROG}.c
