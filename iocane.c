@@ -78,13 +78,13 @@ static void press(int arg) {
 	ev.xbutton.same_screen = True;
     /* fetch current coordinates of pointer; stored in ev */
 	XQueryPointer(dpy, root, &ev.xbutton.root, &ev.xbutton.window,
-			&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x, 
+			&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x,
 			&ev.xbutton.y,&ev.xbutton.state);
 	ev.xbutton.subwindow = ev.xbutton.window;
 	while(ev.xbutton.subwindow) {
 		ev.xbutton.window = ev.xbutton.subwindow;
 		XQueryPointer(dpy, ev.xbutton.window, &ev.xbutton.root,
-				&ev.xbutton.subwindow, &ev.xbutton.x_root, &ev.xbutton.y_root, 
+				&ev.xbutton.subwindow, &ev.xbutton.x_root, &ev.xbutton.y_root,
 				&ev.xbutton.x, &ev.xbutton.y, &ev.xbutton.state);
 	}
     /* send press command */
@@ -105,14 +105,18 @@ static void command(char *line) {
     /* ignore empty lines and comments */
 	if (line[0] == '\0' || line[0] == '\n' || line[0] == '#') return;
 	int x=0, y=0;
+    Bool isMove = False;
     /* line begins with digit; parse "<number> <number>" to x,y */
-	if (line[0] > 47 && line[0] < 58) sscanf(line,"%d %d",&x,&y);
+	if (line[0] >= '0' && line[0] <= '9') {
+        sscanf(line,"%d %d",&x,&y);
+        isMove = True;
+    }
     /* otherwise, ignore leading command and parse x,y */
 	else sscanf(line,"%*s %d %d",&x,&y);
 
     /* interpret command (actually only first character is used),
      * call appropriate X function */
-	if (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
+	if      (line[0] == 'p') XWarpPointer(dpy,None,root,0,0,0,0,sw,sh);
 	else if (line[0] == 'b') press(x);
 	else if (line[0] == 'm') XWarpPointer(dpy,None,None,0,0,0,0,x,y);
 	else if (line[0] == 'c')
@@ -120,7 +124,8 @@ static void command(char *line) {
 	else if (line[0] == 'q') running = False;
 	else if (line[0] == 'e') running = False;
 	else if (line[0] == 's') { sleep(x); usleep(y*1000); }
-	else XWarpPointer(dpy,None,root,0,0,0,0,x,y);
+	else if (isMove == True) XWarpPointer(dpy,None,root,0,0,0,0,x,y);
+    else fprintf(stderr, "unable to interpret command '%s'", line);
 	XFlush(dpy);
 }
 
