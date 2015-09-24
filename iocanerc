@@ -42,6 +42,9 @@ KP_Next move 32 32
 7 button 7
 Prior button 4
 Next button 5
+# press and hold button 1 via v, release via t
+v hold 1
+t release 1
 
 # cursors (see X Font Cursors for options)
 x cursor 0
@@ -56,3 +59,5 @@ p powder
 q quit
 Escape quit
 
+# toggle input on right Control
+Control_R toggle

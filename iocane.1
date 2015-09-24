@@ -1,5 +1,5 @@
 '\" t
-.\" Manual page created with latex2man on Thu Sep 26 11:34:24 EDT 2013
+.\" Manual page created with latex2man on Tue Sep 15 11:25:14 CEST 2015
 .\" NOTE: This file is generated, DO NOT EDIT.
 .de Vb
 .ft CW
@@ -10,7 +10,7 @@
 
 .fi
 ..
-.TH "IOCANE" "1" "26 September 2013" "simulate mouse events " "simulate mouse events "
+.TH "IOCANE" "1" "15 September 2015" "simulate mouse events " "simulate mouse events "
 .SH NAME
 
 Iocane
@@ -85,7 +85,13 @@ pixels
  Place the cursor at coordinates (\fIx\fP,\fIy\fP)
 .TP
 \fBbutton\fP \fIn\fP
- Simulate a press of mouse button \fIn\fP
+ Simulate a press (and release) of mouse button \fIn\fP
+.TP
+\fBhold\fP \fIn\fP
+ Simulate a press without release of mouse button \fIn\fP
+.TP
+\fBrelease\fP \fIn\fP
+ Simulate a release of mouse button \fIn\fP
 .TP
 \fBcursor\fP \fIn\fP
  Sets the cursor to the \fIn\fPth
@@ -98,6 +104,14 @@ milliseconds
 .TP
 \fBquit\fP | \fBexit\fP
  Exit from interactive mode or end a script 
+.TP
+\fBtoggle\fP
+ Toggle grabbing/not grabbing of keys. 
+This is used to keep iocane
+running in interactive mode but use the 
+bound keys temporarily for some other program. 
+The key bound to this command is still grabbed by iocane,
+though. 
 .PP
 .SH AUTHOR
 
