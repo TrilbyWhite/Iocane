@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <X11/Xlib.h>
+#include <X11/extensions/XTest.h>
 
 #define MAXLINE		100
 #define MAXSYMLEN	12
@@ -39,28 +40,11 @@ static Window root;
 static Bool running = True;
 
 static void press(int arg) {
-	XEvent ev;
-	memset(&ev, 0x00, sizeof(ev));
 	usleep(100000);
-	ev.type = ButtonPress;
-	ev.xbutton.button = arg;
-	ev.xbutton.same_screen = True;
-	XQueryPointer(dpy,root, &ev.xbutton.root, &ev.xbutton.window,
-			&ev.xbutton.x_root, &ev.xbutton.y_root, &ev.xbutton.x, 
-			&ev.xbutton.y,&ev.xbutton.state);
-	ev.xbutton.subwindow = ev.xbutton.window;
-	while(ev.xbutton.subwindow) {
-		ev.xbutton.window = ev.xbutton.subwindow;
-		XQueryPointer(dpy, ev.xbutton.window, &ev.xbutton.root,
-				&ev.xbutton.subwindow, &ev.xbutton.x_root, &ev.xbutton.y_root, 
-				&ev.xbutton.x, &ev.xbutton.y, &ev.xbutton.state);
-	}
-	XSendEvent(dpy,PointerWindow,True,0xfff,&ev);
+	XTestFakeButtonEvent(dpy,arg,True,CurrentTime);
 	XFlush(dpy);
 	usleep(100000);
-	ev.type = ButtonRelease;
-	ev.xbutton.state = 0x400;
-	XSendEvent(dpy,PointerWindow, True, 0xfff, &ev);
+	XTestFakeButtonEvent(dpy, arg, False, CurrentTime);
 	XFlush(dpy);
 }
 
