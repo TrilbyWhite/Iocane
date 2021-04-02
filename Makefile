@@ -1,6 +1,6 @@
 
 PROG    =  iocane
-FLAGS   =  -lX11
+FLAGS   =  -lX11 -lXtst
 VER     =  0.5
 PREFIX  ?= /usr
 
